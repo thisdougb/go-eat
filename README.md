@@ -106,17 +106,13 @@ And in the mean time it keeps functionality separated in a Go-like way.
 
 ### Domain Boundaries
 
-One of the nasties that hits companies when the try and scale is _monolith mess_.
-Code execution paths that are so intertwined that the pragmatic path to scale is rewriting the app into services.
-That's a costly way of scaling.
+One of the nasties that hits companies when the try and scale is _monolith mess_. Code execution paths that are so intertwined that the pragmatic path to scale is rewriting the app. That's a costly way of scaling, but at least you know what it _should_ do.
 
-I try to avoid creating this mess by using Go's `internal` package qualifier.
-For example, when developing features in `kitchen` I want a definitive API into `staff`.
+I want to avoid creating this mess by using Go's `internal` package qualifier. For example, when writing functions in `kitchen` I want to prevent dipping into `staff` because it's convenient.
 
-Go's package export method (capitalised type names) is too lax for my case.
-I want to protect package exports inter-service, but use standard Go package exports intra-service.
+Go's package export method (capitalised type names) is too lax for my case, at the service/domain/parent-package level. I want to protect package exports inter-service, but still use them intra-service.
 
-As a short example, I add some files:
+To solve this I am using a clearly named `publicapi.go` file at the top of each (service) package tree. And by protecting all other functions under `internal` I have enforcement.
 
 ```
 ./goeat/kitchen/
@@ -124,7 +120,14 @@ As a short example, I add some files:
 
 ./goeat/staff/
 ./goeat/staff/publicapi.go
-./ // ./goeat/staff/publicapi.go
+./goeat/staff/internal/calendar/main.go
+```
+
+My `kitchen` service needs to update its `rota` from the `calendar` package in the `staff` service. So I create a public API route into `staff` like this:
+
+```
+// ./goeat/staff/publicapi.go
+
 package staff
 
 import "goeat/staff/internal/calendar"
@@ -136,9 +139,13 @@ var (
 )
 ```
 
+It's really just a local version of an http API. Which will make a future transition easier to do.
+
 And calling this from the `kitchen` service looks like this:
 
-```
+``` 
+// ./goeat/kitchen/internal/rota.go
+
 package rota
 
 import (
@@ -154,6 +161,9 @@ func fetchRota() []string {
 	return rota
 }
 ```
+
+A readability bonus is the name of the import being `staff`. The domain is much clearer than using a sub-package export, which would result in `calendar.GetRota`.
+
 
 ### Testing
 
