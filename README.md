@@ -138,7 +138,7 @@ var (
 
 And calling this from the `kitchen` service looks like this:
 
-``
+```
 package rota
 
 import (
